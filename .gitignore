@@ -1,0 +1,34 @@
+# OS Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.log
+*.tmp
+.claude/
+
+# Extension package
+*.zip
+*.crx
+*.pem
+
+# Node modules (if added later)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Generated icons (optional - users can generate their own)
+icons/*.png
+!icons/icon*.png

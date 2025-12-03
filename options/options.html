@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InitPage - Manage Schedules</title>
+    <link rel="stylesheet" href="options.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1>InitPage Settings</h1>
+                <p class="subtitle">Manage your scheduled URLs</p>
+            </div>
+            <div class="header-actions">
+                <button id="addNewBtn" class="btn-primary">+ Add Schedule</button>
+            </div>
+        </header>
+
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+            <div class="stat">
+                <span class="stat-label">Total Schedules</span>
+                <span class="stat-value" id="totalSchedules">0</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Active</span>
+                <span class="stat-value" id="activeSchedules">0</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Storage Used</span>
+                <span class="stat-value" id="storageUsed">0%</span>
+            </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search schedules...">
+            </div>
+            <div class="toolbar-actions">
+                <button id="exportBtn" class="btn-secondary">Export</button>
+                <button id="importBtn" class="btn-secondary">Import</button>
+                <button id="deleteAllBtn" class="btn-danger">Delete All</button>
+            </div>
+        </div>
+
+        <!-- Schedules Table -->
+        <div class="schedules-section">
+            <div id="schedulesContainer" class="schedules-table">
+                <div class="empty-state">
+                    <p>No schedules yet</p>
+                    <button class="btn-primary" onclick="document.getElementById('addNewBtn').click()">Add Your First Schedule</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Settings Section -->
+        <div class="settings-section">
+            <h2>Settings</h2>
+            <div class="setting-item">
+                <label class="setting-label">
+                    <input type="checkbox" id="notificationsToggle">
+                    <span>Show notifications when opening scheduled tabs</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Hidden file input for import -->
+        <input type="file" id="importFile" accept=".json" style="display: none;">
+    </div>
+
+    <!-- Modal for Add/Edit Schedule -->
+    <div id="scheduleModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">Add Schedule</h2>
+                <button class="modal-close" id="modalClose">&times;</button>
+            </div>
+            <form id="scheduleForm">
+                <div class="form-group">
+                    <label for="modalUrl">URL *</label>
+                    <input type="text" id="modalUrl" placeholder="https://example.com" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="modalDay">Day of Week *</label>
+                        <select id="modalDay" required>
+                            <option value="0">Sunday</option>
+                            <option value="1">Monday</option>
+                            <option value="2">Tuesday</option>
+                            <option value="3">Wednesday</option>
+                            <option value="4">Thursday</option>
+                            <option value="5">Friday</option>
+                            <option value="6">Saturday</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="modalTime">Time *</label>
+                        <input type="time" id="modalTime" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="radio-group-label">Schedule Type *</label>
+                    <div class="radio-group">
+                        <label class="radio-label">
+                            <input type="radio" name="scheduleType" value="recurring" checked>
+                            <span>Recurring (every week)</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="scheduleType" value="one-time">
+                            <span>One-time only</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="modalEnabled" checked>
+                        <span>Enabled</span>
+                    </label>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="cancelBtn">Cancel</button>
+                    <button type="submit" class="btn-primary" id="saveBtn">Save Schedule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast notification -->
+    <div id="toast" class="toast"></div>
+
+    <script type="module" src="options.js"></script>
+</body>
+</html>
