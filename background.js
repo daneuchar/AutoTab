@@ -1,9 +1,89 @@
 // Background service worker for InitPage extension
 // Handles scheduling and automatic tab opening
 
-import { ALARM_NAME, ALARM_PERIOD_MINUTES } from './shared/constants.js';
-import { getSchedules, updateSchedule, getSettings } from './shared/storage.js';
-import { shouldTriggerSchedule } from './shared/scheduler.js';
+// Constants
+const ALARM_NAME = 'schedule-checker';
+const ALARM_PERIOD_MINUTES = 1;
+const STORAGE_KEYS = {
+  SCHEDULES: 'schedules',
+  SETTINGS: 'settings'
+};
+const DEFAULT_SETTINGS = {
+  notifications: true
+};
+const SCHEDULE_TYPES = {
+  RECURRING: 'recurring',
+  ONE_TIME: 'one-time'
+};
+
+// Storage functions
+async function getSchedules() {
+  const result = await chrome.storage.sync.get([STORAGE_KEYS.SCHEDULES]);
+  return result[STORAGE_KEYS.SCHEDULES] || [];
+}
+
+async function updateSchedule(id, updates) {
+  const schedules = await getSchedules();
+  const index = schedules.findIndex(schedule => schedule.id === id);
+
+  if (index === -1) {
+    throw new Error(`Schedule with id ${id} not found`);
+  }
+
+  schedules[index] = {
+    ...schedules[index],
+    ...updates
+  };
+
+  await chrome.storage.sync.set({ [STORAGE_KEYS.SCHEDULES]: schedules });
+  return schedules[index];
+}
+
+async function getSettings() {
+  const result = await chrome.storage.sync.get([STORAGE_KEYS.SETTINGS]);
+  return result[STORAGE_KEYS.SETTINGS] || DEFAULT_SETTINGS;
+}
+
+// Scheduler function
+function shouldTriggerSchedule(schedule, currentDate = new Date()) {
+  const currentDay = currentDate.getDay();
+  const currentTime = `${String(currentDate.getHours()).padStart(2, '0')}:${String(currentDate.getMinutes()).padStart(2, '0')}`;
+
+  // Must be enabled
+  if (!schedule.enabled) {
+    return false;
+  }
+
+  // Must match day and time
+  if (schedule.dayOfWeek !== currentDay) {
+    return false;
+  }
+
+  if (schedule.time !== currentTime) {
+    return false;
+  }
+
+  // For one-time schedules
+  if (schedule.type === SCHEDULE_TYPES.ONE_TIME) {
+    // Don't trigger if already triggered
+    if (schedule.lastTriggered) {
+      return false;
+    }
+  } else {
+    // For recurring schedules, check if not triggered in the last minute
+    if (schedule.lastTriggered) {
+      const lastTriggerDate = new Date(schedule.lastTriggered);
+      const timeDiff = currentDate - lastTriggerDate;
+
+      // If triggered less than 1 minute ago, don't trigger again
+      if (timeDiff < 60000) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
 
 // Initialize alarm on extension install or update
 chrome.runtime.onInstalled.addListener(async (details) => {
