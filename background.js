@@ -191,12 +191,13 @@ async function openScheduledTabs(urls) {
 
   console.log(`Opening ${urls.length} scheduled URL(s):`, urls);
 
-  for (const url of urls) {
+  for (let i = 0; i < urls.length; i++) {
+    const url = urls[i];
     try {
-      // Open in new tab, not focused (less disruptive)
+      // Open in new tab, focus on the first one only
       await chrome.tabs.create({
         url: url,
-        active: false
+        active: i === 0 // Focus only the first tab
       });
 
       console.log('Opened tab:', url);
