@@ -35,6 +35,19 @@
             </div>
         </div>
 
+        <!-- Tab Groups Management -->
+        <div class="groups-section">
+            <div class="section-header">
+                <h2>Tab Groups</h2>
+                <button id="addGroupBtn" class="btn-primary">+ Add Group</button>
+            </div>
+            <div id="groupsContainer" class="groups-grid">
+                <div class="empty-state-small">
+                    <p>No groups yet. Groups help organize tabs that open together.</p>
+                </div>
+            </div>
+        </div>
+
         <!-- Toolbar -->
         <div class="toolbar">
             <div class="search-box">
@@ -120,6 +133,14 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="modalGroup">Tab Group</label>
+                    <select id="modalGroup">
+                        <option value="">None (Ungrouped)</option>
+                        <!-- Groups populated dynamically -->
+                    </select>
+                </div>
+
+                <div class="form-group">
                     <label class="checkbox-label">
                         <input type="checkbox" id="modalEnabled" checked>
                         <span>Enabled</span>
@@ -129,6 +150,43 @@
                 <div class="modal-actions">
                     <button type="button" class="btn-secondary" id="cancelBtn">Cancel</button>
                     <button type="submit" class="btn-primary" id="saveBtn">Save Schedule</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal for Add/Edit Group -->
+    <div id="groupModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="groupModalTitle">Add Group</h2>
+                <button class="modal-close" id="groupModalClose">&times;</button>
+            </div>
+            <form id="groupForm">
+                <div class="form-group">
+                    <label for="groupName">Group Name *</label>
+                    <input type="text" id="groupName" placeholder="e.g., Work, Personal" maxlength="50" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Color *</label>
+                    <div class="color-picker" id="colorPicker">
+                        <button type="button" class="color-btn" data-color="grey" style="background: #5f6368"></button>
+                        <button type="button" class="color-btn" data-color="blue" style="background: #1967d2"></button>
+                        <button type="button" class="color-btn" data-color="red" style="background: #d93025"></button>
+                        <button type="button" class="color-btn" data-color="yellow" style="background: #ea8600"></button>
+                        <button type="button" class="color-btn" data-color="green" style="background: #1e8e3e"></button>
+                        <button type="button" class="color-btn" data-color="pink" style="background: #d01884"></button>
+                        <button type="button" class="color-btn" data-color="purple" style="background: #8430ce"></button>
+                        <button type="button" class="color-btn" data-color="cyan" style="background: #12b5cb"></button>
+                        <button type="button" class="color-btn" data-color="orange" style="background: #fa903e"></button>
+                    </div>
+                    <input type="hidden" id="groupColor" required>
+                </div>
+
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" id="groupCancelBtn">Cancel</button>
+                    <button type="submit" class="btn-primary" id="groupSaveBtn">Save Group</button>
                 </div>
             </form>
         </div>

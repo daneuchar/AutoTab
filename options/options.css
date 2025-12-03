@@ -81,6 +81,140 @@ body {
     color: #4285f4;
 }
 
+/* Groups Section */
+.groups-section {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 24px;
+}
+
+.groups-section .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.groups-section h2 {
+    font-size: 18px;
+    font-weight: 500;
+    margin: 0;
+}
+
+.groups-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+}
+
+.group-card {
+    border: 1px solid #e8eaed;
+    border-radius: 8px;
+    padding: 16px;
+    background: #f8f9fa;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.group-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.group-card-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.group-color-badge {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.group-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: #202124;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.group-schedule-count {
+    font-size: 12px;
+    color: #5f6368;
+    margin-bottom: 12px;
+}
+
+.group-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.group-actions button {
+    flex: 1;
+    padding: 6px 12px;
+    border: 1px solid #dadce0;
+    background: white;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+}
+
+.group-actions button:hover {
+    background: #f8f9fa;
+}
+
+.group-actions .edit-btn {
+    color: #1967d2;
+}
+
+.group-actions .delete-btn {
+    color: #d93025;
+}
+
+.empty-state-small {
+    text-align: center;
+    padding: 24px;
+    color: #5f6368;
+    font-size: 13px;
+}
+
+/* Color Picker */
+.color-picker {
+    display: grid;
+    grid-template-columns: repeat(9, 1fr);
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.color-btn {
+    width: 40px;
+    height: 40px;
+    border: 3px solid transparent;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 0;
+}
+
+.color-btn:hover {
+    transform: scale(1.1);
+}
+
+.color-btn.selected {
+    border-color: #202124;
+    box-shadow: 0 0 0 2px white, 0 0 0 4px #202124;
+}
+
 /* Toolbar */
 .toolbar {
     background: white;
