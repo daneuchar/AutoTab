@@ -20,12 +20,25 @@ export const ALARM_PERIOD_MINUTES = 1;
 
 export const STORAGE_KEYS = {
   SCHEDULES: 'schedules',
-  SETTINGS: 'settings'
+  SETTINGS: 'settings',
+  GROUPS: 'groups'
 };
 
 export const DEFAULT_SETTINGS = {
   notifications: true
 };
+
+export const TAB_GROUP_COLORS = [
+  'grey',
+  'blue',
+  'red',
+  'yellow',
+  'green',
+  'pink',
+  'purple',
+  'cyan',
+  'orange'
+];
 
 // Time format helpers
 export function formatTime24(hours, minutes) {

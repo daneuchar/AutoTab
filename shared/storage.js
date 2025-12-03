@@ -109,3 +109,99 @@ export async function getStorageInfo() {
     });
   });
 }
+
+// ============================================================================
+// GROUP MANAGEMENT FUNCTIONS
+// ============================================================================
+
+// Get all groups
+export async function getGroups() {
+  const result = await chrome.storage.sync.get([STORAGE_KEYS.GROUPS]);
+  return result[STORAGE_KEYS.GROUPS] || [];
+}
+
+// Get a single group by ID
+export async function getGroupById(id) {
+  const groups = await getGroups();
+  return groups.find(group => group.id === id);
+}
+
+// Add a new group
+export async function addGroup(group) {
+  const groups = await getGroups();
+
+  // Validate name uniqueness
+  const existingGroup = groups.find(g => g.name.toLowerCase() === group.name.toLowerCase());
+  if (existingGroup) {
+    throw new Error(`A group named "${group.name}" already exists`);
+  }
+
+  // Create new group with defaults
+  const newGroup = {
+    ...group,
+    id: crypto.randomUUID(),
+    createdAt: Date.now()
+  };
+
+  groups.push(newGroup);
+  await chrome.storage.sync.set({ [STORAGE_KEYS.GROUPS]: groups });
+
+  return newGroup;
+}
+
+// Update an existing group
+export async function updateGroup(id, updates) {
+  const groups = await getGroups();
+  const index = groups.findIndex(group => group.id === id);
+
+  if (index === -1) {
+    throw new Error(`Group with id ${id} not found`);
+  }
+
+  // Validate name uniqueness if name is being updated
+  if (updates.name) {
+    const existingGroup = groups.find(g =>
+      g.id !== id && g.name.toLowerCase() === updates.name.toLowerCase()
+    );
+    if (existingGroup) {
+      throw new Error(`A group named "${updates.name}" already exists`);
+    }
+  }
+
+  groups[index] = {
+    ...groups[index],
+    ...updates
+  };
+
+  await chrome.storage.sync.set({ [STORAGE_KEYS.GROUPS]: groups });
+  return groups[index];
+}
+
+// Delete a group
+export async function deleteGroup(id) {
+  const groups = await getGroups();
+  const filtered = groups.filter(group => group.id !== id);
+
+  // Unassign schedules from this group
+  const schedules = await getSchedules();
+  const updatedSchedules = schedules.map(schedule => {
+    if (schedule.groupId === id) {
+      return { ...schedule, groupId: null };
+    }
+    return schedule;
+  });
+
+  // Update both groups and schedules atomically
+  await chrome.storage.sync.set({
+    [STORAGE_KEYS.GROUPS]: filtered,
+    [STORAGE_KEYS.SCHEDULES]: updatedSchedules
+  });
+
+  return true;
+}
+
+// Get schedules by group ID
+export async function getSchedulesByGroupId(groupId) {
+  const schedules = await getSchedules();
+  return schedules.filter(schedule => schedule.groupId === groupId);
+}

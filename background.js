@@ -44,6 +44,16 @@ async function getSettings() {
   return result[STORAGE_KEYS.SETTINGS] || DEFAULT_SETTINGS;
 }
 
+async function getGroups() {
+  const result = await chrome.storage.sync.get([STORAGE_KEYS.GROUPS]);
+  return result[STORAGE_KEYS.GROUPS] || [];
+}
+
+async function getGroupById(id) {
+  const groups = await getGroups();
+  return groups.find(group => group.id === id);
+}
+
 // Scheduler function
 function shouldTriggerSchedule(schedule, currentDate = new Date()) {
   const currentDay = currentDate.getDay();
@@ -162,8 +172,7 @@ async function checkAndTriggerSchedules() {
     console.log(`Triggering ${triggeredSchedules.length} schedule(s):`, triggeredSchedules);
 
     // Open tabs for all triggered schedules
-    const urls = triggeredSchedules.map(s => s.url);
-    await openScheduledTabs(urls);
+    await openScheduledTabs(triggeredSchedules);
 
     // Update lastTriggered timestamp for all triggered schedules
     for (const schedule of triggeredSchedules) {
@@ -175,7 +184,7 @@ async function checkAndTriggerSchedules() {
     // Show notification if enabled
     const settings = await getSettings();
     if (settings.notifications) {
-      showNotification(urls);
+      showNotification(triggeredSchedules);
     }
 
   } catch (error) {
@@ -183,39 +192,147 @@ async function checkAndTriggerSchedules() {
   }
 }
 
-// Open tabs for scheduled URLs
-async function openScheduledTabs(urls) {
-  if (!urls || urls.length === 0) {
+// Open tabs for scheduled URLs with tab grouping support
+async function openScheduledTabs(schedules) {
+  if (!schedules || schedules.length === 0) {
     return;
   }
 
-  console.log(`Opening ${urls.length} scheduled URL(s):`, urls);
+  console.log(`Opening ${schedules.length} scheduled URL(s)`);
 
-  for (let i = 0; i < urls.length; i++) {
-    const url = urls[i];
-    try {
-      // Open in new tab, focus on the first one only
-      await chrome.tabs.create({
-        url: url,
-        active: i === 0 // Focus only the first tab
-      });
+  try {
+    // Get current window
+    const currentWindow = await chrome.windows.getCurrent();
 
-      console.log('Opened tab:', url);
-    } catch (error) {
-      console.error(`Error opening tab for ${url}:`, error);
+    // Get all existing tab groups in current window
+    const existingGroups = await chrome.tabGroups.query({
+      windowId: currentWindow.id
+    });
+
+    // Organize schedules by groupId
+    const schedulesByGroup = {};
+    const ungroupedSchedules = [];
+
+    for (const schedule of schedules) {
+      if (schedule.groupId) {
+        if (!schedulesByGroup[schedule.groupId]) {
+          schedulesByGroup[schedule.groupId] = [];
+        }
+        schedulesByGroup[schedule.groupId].push(schedule);
+      } else {
+        ungroupedSchedules.push(schedule);
+      }
+    }
+
+    let isFirstTab = true;
+
+    // Process grouped schedules
+    for (const [groupId, groupSchedules] of Object.entries(schedulesByGroup)) {
+      try {
+        // Get group details
+        const group = await getGroupById(groupId);
+
+        if (!group) {
+          // Group was deleted, treat as ungrouped
+          console.warn(`Group ${groupId} not found, opening tabs ungrouped`);
+          ungroupedSchedules.push(...groupSchedules);
+          continue;
+        }
+
+        // Open all tabs in this group
+        const tabIds = [];
+        for (const schedule of groupSchedules) {
+          try {
+            const tab = await chrome.tabs.create({
+              url: schedule.url,
+              active: isFirstTab,
+              windowId: currentWindow.id
+            });
+            tabIds.push(tab.id);
+            console.log(`Opened tab: ${schedule.url}`);
+            isFirstTab = false;
+          } catch (error) {
+            console.error(`Error opening tab for ${schedule.url}:`, error);
+          }
+        }
+
+        // Group the tabs
+        if (tabIds.length > 0) {
+          try {
+            // Check if group with same title already exists
+            const existingGroup = existingGroups.find(g => g.title === group.name);
+
+            if (existingGroup) {
+              // Add tabs to existing group
+              await chrome.tabs.group({
+                tabIds: tabIds,
+                groupId: existingGroup.id
+              });
+              console.log(`Added ${tabIds.length} tabs to existing group: ${group.name}`);
+            } else {
+              // Create new group
+              const newGroupId = await chrome.tabs.group({
+                tabIds: tabIds
+              });
+
+              // Configure the group
+              await chrome.tabGroups.update(newGroupId, {
+                title: group.name,
+                color: group.color,
+                collapsed: false
+              });
+              console.log(`Created new group "${group.name}" with ${tabIds.length} tabs`);
+            }
+          } catch (error) {
+            console.error(`Error grouping tabs for group ${group.name}:`, error);
+            // Tabs are still open, just not grouped
+          }
+        }
+      } catch (error) {
+        console.error(`Error processing group ${groupId}:`, error);
+      }
+    }
+
+    // Process ungrouped schedules
+    for (const schedule of ungroupedSchedules) {
+      try {
+        await chrome.tabs.create({
+          url: schedule.url,
+          active: isFirstTab,
+          windowId: currentWindow.id
+        });
+        console.log(`Opened ungrouped tab: ${schedule.url}`);
+        isFirstTab = false;
+      } catch (error) {
+        console.error(`Error opening tab for ${schedule.url}:`, error);
+      }
+    }
+
+  } catch (error) {
+    console.error('Error in openScheduledTabs:', error);
+    // Fallback: open tabs without grouping
+    for (let i = 0; i < schedules.length; i++) {
+      try {
+        await chrome.tabs.create({
+          url: schedules[i].url,
+          active: i === 0
+        });
+      } catch (tabError) {
+        console.error(`Error opening tab:`, tabError);
+      }
     }
   }
 }
 
 // Show notification when tabs are opened
-function showNotification(urls) {
+function showNotification(schedules) {
   const title = 'InitPage - Scheduled URLs Opened';
   let message;
 
-  if (urls.length === 1) {
-    message = `Opened: ${urls[0]}`;
+  if (schedules.length === 1) {
+    message = `Opened: ${schedules[0].url}`;
   } else {
-    message = `Opened ${urls.length} scheduled URLs`;
+    message = `Opened ${schedules.length} scheduled URLs`;
   }
 
   chrome.notifications.create({
