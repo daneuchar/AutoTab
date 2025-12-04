@@ -1,4 +1,4 @@
-// Background service worker for InitPage extension
+// Background service worker for Auto Tab extension
 // Handles scheduling and automatic tab opening
 
 // Constants
@@ -6,7 +6,8 @@ const ALARM_NAME = 'schedule-checker';
 const ALARM_PERIOD_MINUTES = 1;
 const STORAGE_KEYS = {
   SCHEDULES: 'schedules',
-  SETTINGS: 'settings'
+  SETTINGS: 'settings',
+  GROUPS: 'groups'
 };
 const DEFAULT_SETTINGS = {
   notifications: true
@@ -14,6 +15,11 @@ const DEFAULT_SETTINGS = {
 const SCHEDULE_TYPES = {
   RECURRING: 'recurring',
   ONE_TIME: 'one-time'
+};
+const SCHEDULE_MODES = {
+  DAY_OF_WEEK: 'day-of-week',
+  SPECIFIC_DATE: 'specific-date',
+  DATE_RANGE: 'date-range'
 };
 
 // Storage functions
@@ -64,30 +70,113 @@ function shouldTriggerSchedule(schedule, currentDate = new Date()) {
     return false;
   }
 
-  // Must match day and time
-  if (schedule.dayOfWeek !== currentDay) {
-    return false;
-  }
+  // Get current date in YYYY-MM-DD format
+  const year = currentDate.getFullYear();
+  const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+  const day = String(currentDate.getDate()).padStart(2, '0');
+  const currentDateStr = `${year}-${month}-${day}`;
 
-  if (schedule.time !== currentTime) {
-    return false;
-  }
-
-  // For one-time schedules
-  if (schedule.type === SCHEDULE_TYPES.ONE_TIME) {
-    // Don't trigger if already triggered
-    if (schedule.lastTriggered) {
+  // New mode: Specific Dates (multi-date selection)
+  if (schedule.mode === 'specific-dates' && schedule.specificDates) {
+    if (schedule.time !== currentTime) {
       return false;
     }
-  } else {
-    // For recurring schedules, check if not triggered in the last minute
-    if (schedule.lastTriggered) {
-      const lastTriggerDate = new Date(schedule.lastTriggered);
-      const timeDiff = currentDate - lastTriggerDate;
 
-      // If triggered less than 1 minute ago, don't trigger again
+    // Check if today is one of the selected dates
+    if (!schedule.specificDates.includes(currentDateStr)) {
+      return false;
+    }
+
+    // Check if already triggered today
+    if (schedule.lastTriggered) {
+      const lastDate = formatDateYYYYMMDD(new Date(schedule.lastTriggered));
+      if (lastDate === currentDateStr) {
+        return false; // Already triggered today
+      }
+    }
+
+    return true;
+  }
+
+  // New mode: Days of Week (multi-day selection)
+  if (schedule.mode === 'days-of-week' && schedule.daysOfWeek) {
+    if (schedule.time !== currentTime) {
+      return false;
+    }
+
+    // Check if today is one of the selected days
+    if (!schedule.daysOfWeek.includes(currentDay)) {
+      return false;
+    }
+
+    // Prevent duplicate triggers within same minute
+    if (schedule.lastTriggered) {
+      const timeDiff = currentDate - new Date(schedule.lastTriggered);
       if (timeDiff < 60000) {
         return false;
+      }
+    }
+
+    return true;
+  }
+
+  // Backward compatibility: Old format with specificDate and recurring
+  if (schedule.specificDate) {
+    const scheduleDate = new Date(schedule.specificDate);
+    const scheduleDayOfWeek = scheduleDate.getDay();
+
+    // Must match time
+    if (schedule.time !== currentTime) {
+      return false;
+    }
+
+    if (schedule.recurring) {
+      // Recurring: match day of week from the selected date
+      if (scheduleDayOfWeek !== currentDay) {
+        return false;
+      }
+
+      // Check if not triggered in the last minute
+      if (schedule.lastTriggered) {
+        const lastTriggerDate = new Date(schedule.lastTriggered);
+        const timeDiff = currentDate - lastTriggerDate;
+        if (timeDiff < 60000) {
+          return false;
+        }
+      }
+    } else {
+      // One-time: exact date match
+      if (schedule.specificDate !== currentDateStr) {
+        return false;
+      }
+
+      // One-time only
+      if (schedule.lastTriggered) {
+        return false;
+      }
+    }
+  }
+  // Backward compatibility with very old day-of-week format
+  else if (schedule.dayOfWeek !== undefined) {
+    if (schedule.dayOfWeek !== currentDay) {
+      return false;
+    }
+
+    if (schedule.time !== currentTime) {
+      return false;
+    }
+
+    if (schedule.type === SCHEDULE_TYPES.ONE_TIME) {
+      if (schedule.lastTriggered) {
+        return false;
+      }
+    } else {
+      if (schedule.lastTriggered) {
+        const lastTriggerDate = new Date(schedule.lastTriggered);
+        const timeDiff = currentDate - lastTriggerDate;
+        if (timeDiff < 60000) {
+          return false;
+        }
       }
     }
   }
@@ -95,9 +184,17 @@ function shouldTriggerSchedule(schedule, currentDate = new Date()) {
   return true;
 }
 
+// Helper function to format date as YYYY-MM-DD
+function formatDateYYYYMMDD(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 // Initialize alarm on extension install or update
 chrome.runtime.onInstalled.addListener(async (details) => {
-  console.log('InitPage extension installed/updated:', details.reason);
+  console.log('Auto Tab extension installed/updated:', details.reason);
 
   // Create the periodic alarm
   await createScheduleAlarm();
@@ -326,7 +423,7 @@ async function openScheduledTabs(schedules) {
 
 // Show notification when tabs are opened
 function showNotification(schedules) {
-  const title = 'InitPage - Scheduled URLs Opened';
+  const title = 'Auto Tab - Scheduled URLs Opened';
   let message;
 
   if (schedules.length === 1) {
@@ -364,4 +461,4 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
-console.log('InitPage background service worker loaded');
+console.log('Auto Tab background service worker loaded');

@@ -1,20 +1,30 @@
-// Options page logic for InitPage extension
-import { DAYS_OF_WEEK, SCHEDULE_TYPES } from '../shared/constants.js';
-import { getSchedules, addSchedule, updateSchedule, deleteSchedule, deleteSchedules, toggleSchedule, getSettings, updateSettings, clearAllSchedules, getStorageInfo } from '../shared/storage.js';
+// Options page logic for Auto Tab extension
+import { DAYS_OF_WEEK, SCHEDULE_TYPES, SCHEDULE_MODES, TAB_GROUP_COLORS } from '../shared/constants.js';
+import { getSchedules, addSchedule, updateSchedule, deleteSchedule, deleteSchedules, toggleSchedule, getSettings, updateSettings, clearAllSchedules, getStorageInfo, getGroups, addGroup, updateGroup, deleteGroup, getSchedulesByGroupId } from '../shared/storage.js';
 import { isValidURL, formatURL, findDuplicateSchedule, formatTime12Hour } from '../shared/scheduler.js';
+import { getGroupColorHex, isGroupInUse } from '../shared/groups.js';
 
 // DOM elements
 let schedulesContainer, searchInput;
 let addNewBtn, exportBtn, importBtn, deleteAllBtn, importFile;
 let scheduleModal, modalClose, scheduleForm, cancelBtn;
-let modalTitle, modalUrl, modalDay, modalTime, modalEnabled;
+let modalTitle, modalUrl, modalTime, modalEnabled, modalGroup;
+let calendarPicker, flatpickrInstance;
+let specificDatesMode, daysOfWeekMode;
 let notificationsToggle;
 let totalSchedules, activeSchedules, storageUsed;
+// Group elements
+let groupsContainer, addGroupBtn;
+let groupModal, groupModalClose, groupForm, groupCancelBtn;
+let groupModalTitle, groupName, groupColor, colorPicker;
 
 // State
 let allSchedules = [];
 let filteredSchedules = [];
 let editingScheduleId = null;
+let allGroups = [];
+let editingGroupId = null;
+let selectedColor = null;
 
 // Initialize options page
 document.addEventListener('DOMContentLoaded', async () => {
@@ -32,13 +42,27 @@ document.addEventListener('DOMContentLoaded', async () => {
     cancelBtn = document.getElementById('cancelBtn');
     modalTitle = document.getElementById('modalTitle');
     modalUrl = document.getElementById('modalUrl');
-    modalDay = document.getElementById('modalDay');
     modalTime = document.getElementById('modalTime');
     modalEnabled = document.getElementById('modalEnabled');
+    modalGroup = document.getElementById('modalGroup');
+    calendarPicker = document.getElementById('calendarPicker');
+    specificDatesMode = document.getElementById('specificDatesMode');
+    daysOfWeekMode = document.getElementById('daysOfWeekMode');
     notificationsToggle = document.getElementById('notificationsToggle');
     totalSchedules = document.getElementById('totalSchedules');
     activeSchedules = document.getElementById('activeSchedules');
     storageUsed = document.getElementById('storageUsed');
+    // Group elements
+    groupsContainer = document.getElementById('groupsContainer');
+    addGroupBtn = document.getElementById('addGroupBtn');
+    groupModal = document.getElementById('groupModal');
+    groupModalClose = document.getElementById('groupModalClose');
+    groupForm = document.getElementById('groupForm');
+    groupCancelBtn = document.getElementById('groupCancelBtn');
+    groupModalTitle = document.getElementById('groupModalTitle');
+    groupName = document.getElementById('groupName');
+    groupColor = document.getElementById('groupColor');
+    colorPicker = document.getElementById('colorPicker');
 
     // Event listeners
     addNewBtn.addEventListener('click', openAddModal);
@@ -51,6 +75,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     scheduleForm.addEventListener('submit', handleSaveSchedule);
     searchInput.addEventListener('input', handleSearch);
     notificationsToggle.addEventListener('change', handleSettingsChange);
+    // Group event listeners
+    addGroupBtn.addEventListener('click', openAddGroupModal);
+    groupModalClose.addEventListener('click', closeGroupModal);
+    groupCancelBtn.addEventListener('click', closeGroupModal);
+    groupForm.addEventListener('submit', handleSaveGroup);
+    colorPicker.addEventListener('click', handleColorSelection);
+
+    // Initialize flatpickr for multi-date selection
+    flatpickrInstance = flatpickr(calendarPicker, {
+        mode: "multiple",
+        dateFormat: "Y-m-d",
+        minDate: "today",
+        inline: false,
+        showMonths: 1,
+        onChange: function(selectedDates, dateStr, instance) {
+            console.log('Selected dates:', selectedDates);
+        }
+    });
+
+    // Mode switching event listeners
+    document.querySelectorAll('input[name="scheduleMode"]').forEach(radio => {
+        radio.addEventListener('change', handleModeSwitch);
+    });
 
     // Close modal on background click
     scheduleModal.addEventListener('click', (e) => {
@@ -58,11 +105,23 @@ document.addEventListener('DOMContentLoaded', async () => {
             closeModal();
         }
     });
+    groupModal.addEventListener('click', (e) => {
+        if (e.target === groupModal) {
+            closeGroupModal();
+        }
+    });
 
     // Load data
     await loadSettings();
+    await loadGroups();
     await loadSchedules();
     await updateStats();
+
+    // Add event listener to initial empty state button (if it exists)
+    const emptyAddBtn = document.getElementById('emptyAddBtn');
+    if (emptyAddBtn) {
+        emptyAddBtn.addEventListener('click', openAddModal);
+    }
 
     // Listen for storage changes
     chrome.storage.onChanged.addListener((changes, area) => {
@@ -70,13 +129,223 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (changes.schedules) {
                 loadSchedules();
                 updateStats();
+                loadGroups(); // Reload groups to update schedule counts
             }
             if (changes.settings) {
                 loadSettings();
             }
+            if (changes.groups) {
+                loadGroups();
+            }
         }
     });
 });
+
+// ============================================================================
+// GROUP MANAGEMENT FUNCTIONS
+// ============================================================================
+
+// Load and display groups
+async function loadGroups() {
+    try {
+        allGroups = await getGroups();
+        renderGroups();
+        populateGroupDropdowns();
+    } catch (error) {
+        console.error('Error loading groups:', error);
+        showToast('Error loading groups', 'error');
+    }
+}
+
+// Render groups to the grid
+function renderGroups() {
+    groupsContainer.innerHTML = '';
+
+    if (allGroups.length === 0) {
+        groupsContainer.innerHTML = `
+            <div class="empty-state-small">
+                <p>No groups yet. Groups help organize tabs that open together.</p>
+            </div>
+        `;
+        return;
+    }
+
+    allGroups.forEach(async (group) => {
+        const card = await createGroupCard(group);
+        groupsContainer.appendChild(card);
+    });
+}
+
+// Create group card element
+async function createGroupCard(group) {
+    const card = document.createElement('div');
+    card.className = 'group-card';
+
+    const scheduleCount = await getSchedulesByGroupId(group.id);
+    const count = scheduleCount.length;
+    const colorHex = getGroupColorHex(group.color);
+
+    card.innerHTML = `
+        <div class="group-card-header">
+            <div class="group-color-badge" style="background: ${colorHex}"></div>
+            <div class="group-name">${group.name}</div>
+        </div>
+        <div class="group-schedule-count">${count} schedule${count !== 1 ? 's' : ''}</div>
+        <div class="group-actions">
+            <button class="edit-btn" data-id="${group.id}">Edit</button>
+            <button class="delete-btn" data-id="${group.id}">Delete</button>
+        </div>
+    `;
+
+    // Add event listeners
+    const editBtn = card.querySelector('.edit-btn');
+    const deleteBtn = card.querySelector('.delete-btn');
+
+    editBtn.addEventListener('click', () => openEditGroupModal(group));
+    deleteBtn.addEventListener('click', () => handleDeleteGroup(group.id));
+
+    return card;
+}
+
+// Open add group modal
+function openAddGroupModal() {
+    editingGroupId = null;
+    selectedColor = null;
+    groupModalTitle.textContent = 'Add Group';
+    groupForm.reset();
+    groupColor.value = '';
+
+    // Deselect all colors
+    colorPicker.querySelectorAll('.color-btn').forEach(btn => {
+        btn.classList.remove('selected');
+    });
+
+    groupModal.classList.add('show');
+}
+
+// Open edit group modal
+function openEditGroupModal(group) {
+    editingGroupId = group.id;
+    selectedColor = group.color;
+    groupModalTitle.textContent = 'Edit Group';
+
+    groupName.value = group.name;
+    groupColor.value = group.color;
+
+    // Select the color
+    colorPicker.querySelectorAll('.color-btn').forEach(btn => {
+        if (btn.dataset.color === group.color) {
+            btn.classList.add('selected');
+        } else {
+            btn.classList.remove('selected');
+        }
+    });
+
+    groupModal.classList.add('show');
+}
+
+// Close group modal
+function closeGroupModal() {
+    groupModal.classList.remove('show');
+    editingGroupId = null;
+    selectedColor = null;
+}
+
+// Handle color selection
+function handleColorSelection(e) {
+    if (!e.target.classList.contains('color-btn')) {
+        return;
+    }
+
+    const color = e.target.dataset.color;
+    selectedColor = color;
+    groupColor.value = color;
+
+    // Update visual selection
+    colorPicker.querySelectorAll('.color-btn').forEach(btn => {
+        btn.classList.remove('selected');
+    });
+    e.target.classList.add('selected');
+}
+
+// Handle save group
+async function handleSaveGroup(e) {
+    e.preventDefault();
+
+    try {
+        const name = groupName.value.trim();
+        const color = groupColor.value;
+
+        if (!name) {
+            showToast('Please enter a group name', 'error');
+            return;
+        }
+
+        if (!color) {
+            showToast('Please select a color', 'error');
+            return;
+        }
+
+        const groupData = {
+            name,
+            color
+        };
+
+        if (editingGroupId) {
+            // Update existing group
+            await updateGroup(editingGroupId, groupData);
+            showToast('Group updated successfully', 'success');
+        } else {
+            // Add new group
+            await addGroup(groupData);
+            showToast('Group added successfully', 'success');
+        }
+
+        closeGroupModal();
+        // Note: loadGroups() will be called automatically by storage.onChanged listener
+
+    } catch (error) {
+        console.error('Error saving group:', error);
+        showToast(error.message || 'Error saving group', 'error');
+    }
+}
+
+// Handle delete group
+async function handleDeleteGroup(groupId) {
+    try {
+        const inUse = await isGroupInUse(groupId);
+        const schedules = await getSchedulesByGroupId(groupId);
+
+        let confirmMessage = 'Are you sure you want to delete this group?';
+        if (inUse) {
+            confirmMessage = `This group has ${schedules.length} schedule${schedules.length !== 1 ? 's' : ''}. They will be ungrouped. Continue?`;
+        }
+
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+
+        await deleteGroup(groupId);
+        showToast('Group deleted', 'success');
+        // Note: loadGroups() and loadSchedules() will be called automatically by storage.onChanged listener
+
+    } catch (error) {
+        console.error('Error deleting group:', error);
+        showToast('Error deleting group', 'error');
+    }
+}
+
+// Populate group dropdowns (in schedule modal)
+function populateGroupDropdowns() {
+    const options = ['<option value="">None (Ungrouped)</option>'];
+
+    allGroups.forEach(group => {
+        const colorHex = getGroupColorHex(group.color);
+        options.push(`<option value="${group.id}">${group.name}</option>`);
+    });
+
+    modalGroup.innerHTML = options.join('');
+}
 
 // Load all schedules
 async function loadSchedules() {
@@ -95,12 +364,22 @@ function renderSchedules() {
     schedulesContainer.innerHTML = '';
 
     if (filteredSchedules.length === 0) {
-        schedulesContainer.innerHTML = `
-            <div class="empty-state">
-                <p>${searchInput.value ? 'No schedules match your search' : 'No schedules yet'}</p>
-                ${!searchInput.value ? '<button class="btn-primary" onclick="document.getElementById(\'addNewBtn\').click()">Add Your First Schedule</button>' : ''}
-            </div>
-        `;
+        const emptyState = document.createElement('div');
+        emptyState.className = 'empty-state';
+
+        const message = document.createElement('p');
+        message.textContent = searchInput.value ? 'No schedules match your search' : 'No schedules yet';
+        emptyState.appendChild(message);
+
+        if (!searchInput.value) {
+            const button = document.createElement('button');
+            button.className = 'btn-primary';
+            button.textContent = 'Add Your First Schedule';
+            button.addEventListener('click', openAddModal);
+            emptyState.appendChild(button);
+        }
+
+        schedulesContainer.appendChild(emptyState);
         return;
     }
 
@@ -115,18 +394,74 @@ function createScheduleRow(schedule) {
     const row = document.createElement('div');
     row.className = `schedule-row ${!schedule.enabled ? 'disabled' : ''}`;
 
-    const dayName = DAYS_OF_WEEK[schedule.dayOfWeek];
     const timeStr = formatTime12Hour(schedule.time);
-    const typeClass = schedule.type === SCHEDULE_TYPES.RECURRING ? 'recurring' : 'one-time';
-    const typeText = schedule.type === SCHEDULE_TYPES.RECURRING ? 'Recurring' : 'One-time';
+
+    // Build day/date info
+    let dayInfo = '';
+    let typeClass = '';
+    let typeText = '';
+
+    if (schedule.mode === 'specific-dates' && schedule.specificDates) {
+        // New format: multiple specific dates
+        const dates = schedule.specificDates.map(d => {
+            const date = new Date(d);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        }).join(', ');
+        dayInfo = dates;
+        typeClass = 'one-time';
+        typeText = `${schedule.specificDates.length} Date${schedule.specificDates.length > 1 ? 's' : ''}`;
+
+    } else if (schedule.mode === 'days-of-week' && schedule.daysOfWeek) {
+        // New format: multiple days of week
+        const days = schedule.daysOfWeek
+            .sort((a, b) => a - b)
+            .map(d => DAYS_OF_WEEK[d].substring(0, 3))
+            .join(', ');
+        dayInfo = days;
+        typeClass = 'recurring';
+        typeText = 'Weekly';
+
+    } else if (schedule.specificDate) {
+        // Old format: single specific date
+        const date = new Date(schedule.specificDate);
+        const dayOfWeek = DAYS_OF_WEEK[date.getDay()];
+        const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+
+        if (schedule.recurring) {
+            dayInfo = `${dayOfWeek}<br><small>${dateStr}</small>`;
+            typeClass = 'recurring';
+            typeText = 'Recurring';
+        } else {
+            dayInfo = dateStr;
+            typeClass = 'one-time';
+            typeText = 'One-time';
+        }
+    } else if (schedule.dayOfWeek !== undefined) {
+        // Very old format: day of week number
+        const dayName = DAYS_OF_WEEK[schedule.dayOfWeek];
+        dayInfo = dayName;
+        typeClass = schedule.type === SCHEDULE_TYPES.RECURRING ? 'recurring' : 'one-time';
+        typeText = schedule.type === SCHEDULE_TYPES.RECURRING ? 'Recurring' : 'One-time';
+    }
+
+    // Get group info
+    let groupHtml = '<div class="schedule-group">—</div>';
+    if (schedule.groupId) {
+        const group = allGroups.find(g => g.id === schedule.groupId);
+        if (group) {
+            const colorHex = getGroupColorHex(group.color);
+            groupHtml = `<div class="schedule-group"><span class="group-color-badge" style="background: ${colorHex}; width: 12px; height: 12px; display: inline-block; border-radius: 50%; margin-right: 6px; vertical-align: middle;"></span>${group.name}</div>`;
+        }
+    }
 
     row.innerHTML = `
         <div class="schedule-enabled">
             <input type="checkbox" ${schedule.enabled ? 'checked' : ''} data-id="${schedule.id}">
         </div>
         <div class="schedule-url">${schedule.url}</div>
-        <div class="schedule-day">${dayName}</div>
+        <div class="schedule-day">${dayInfo}</div>
         <div class="schedule-time">${timeStr}</div>
+        ${groupHtml}
         <div class="schedule-type ${typeClass}">${typeText}</div>
         <div class="schedule-actions">
             <button class="btn-icon edit" data-id="${schedule.id}" title="Edit">✏️</button>
@@ -145,6 +480,19 @@ function createScheduleRow(schedule) {
     deleteBtn.addEventListener('click', () => handleDelete(schedule.id));
 
     return row;
+}
+
+// Handle mode switching between specific dates and days of week
+function handleModeSwitch(e) {
+    const mode = e.target.value;
+
+    if (mode === 'specific-dates') {
+        specificDatesMode.style.display = 'block';
+        daysOfWeekMode.style.display = 'none';
+    } else {
+        specificDatesMode.style.display = 'none';
+        daysOfWeekMode.style.display = 'block';
+    }
 }
 
 // Handle search
@@ -172,11 +520,20 @@ function openAddModal() {
 
     // Set defaults
     const now = new Date();
-    modalDay.value = now.getDay();
     const futureTime = new Date(now.getTime() + 5 * 60000);
     modalTime.value = `${String(futureTime.getHours()).padStart(2, '0')}:${String(futureTime.getMinutes()).padStart(2, '0')}`;
+
+    // Set mode to specific dates by default
+    document.querySelector('input[name="scheduleMode"][value="specific-dates"]').checked = true;
+    handleModeSwitch({ target: { value: 'specific-dates' } });
+
+    // Clear flatpickr selection
+    flatpickrInstance.clear();
+
+    // Uncheck all day-of-week checkboxes
+    document.querySelectorAll('input[name="dow"]').forEach(cb => cb.checked = false);
+
     modalEnabled.checked = true;
-    document.querySelector('input[name="scheduleType"][value="recurring"]').checked = true;
 
     scheduleModal.classList.add('show');
 }
@@ -187,10 +544,37 @@ function openEditModal(schedule) {
     modalTitle.textContent = 'Edit Schedule';
 
     modalUrl.value = schedule.url;
-    modalDay.value = schedule.dayOfWeek;
-    modalTime.value = schedule.time;
     modalEnabled.checked = schedule.enabled;
-    document.querySelector(`input[name="scheduleType"][value="${schedule.type}"]`).checked = true;
+    modalGroup.value = schedule.groupId || '';
+    modalTime.value = schedule.time;
+
+    // Handle different schedule formats
+    if (schedule.mode === 'specific-dates' && schedule.specificDates) {
+        // New format: specific dates mode
+        document.querySelector('input[name="scheduleMode"][value="specific-dates"]').checked = true;
+        handleModeSwitch({ target: { value: 'specific-dates' } });
+        const dates = schedule.specificDates.map(d => new Date(d));
+        flatpickrInstance.setDate(dates);
+    } else if (schedule.mode === 'days-of-week' && schedule.daysOfWeek) {
+        // New format: days of week mode
+        document.querySelector('input[name="scheduleMode"][value="days-of-week"]').checked = true;
+        handleModeSwitch({ target: { value: 'days-of-week' } });
+        document.querySelectorAll('input[name="dow"]').forEach(cb => {
+            cb.checked = schedule.daysOfWeek.includes(parseInt(cb.value));
+        });
+    } else if (schedule.specificDate) {
+        // Old format with specificDate - convert to new specific-dates mode
+        document.querySelector('input[name="scheduleMode"][value="specific-dates"]').checked = true;
+        handleModeSwitch({ target: { value: 'specific-dates' } });
+        flatpickrInstance.setDate([new Date(schedule.specificDate)]);
+    } else if (schedule.dayOfWeek !== undefined) {
+        // Very old day-of-week format - convert to new days-of-week mode
+        document.querySelector('input[name="scheduleMode"][value="days-of-week"]').checked = true;
+        handleModeSwitch({ target: { value: 'days-of-week' } });
+        document.querySelectorAll('input[name="dow"]').forEach(cb => {
+            cb.checked = parseInt(cb.value) === schedule.dayOfWeek;
+        });
+    }
 
     scheduleModal.classList.add('show');
 }
@@ -207,10 +591,10 @@ async function handleSaveSchedule(e) {
 
     try {
         const url = formatURL(modalUrl.value);
-        const dayOfWeek = parseInt(modalDay.value);
         const time = modalTime.value;
-        const type = document.querySelector('input[name="scheduleType"]:checked').value;
         const enabled = modalEnabled.checked;
+        const groupId = modalGroup.value || null;
+        const mode = document.querySelector('input[name="scheduleMode"]:checked').value;
 
         // Validate URL
         if (!isValidURL(url)) {
@@ -218,23 +602,47 @@ async function handleSaveSchedule(e) {
             return;
         }
 
-        const scheduleData = {
-            url,
-            dayOfWeek,
-            time,
-            type,
-            enabled
-        };
-
-        // Check for duplicates (excluding current schedule if editing)
-        const duplicate = findDuplicateSchedule(allSchedules, { ...scheduleData, id: editingScheduleId });
-        if (duplicate) {
-            const dayName = DAYS_OF_WEEK[dayOfWeek];
-            const timeStr = formatTime12Hour(time);
-            showToast(`A ${type} schedule for ${dayName} at ${timeStr} already exists for this URL`, 'error');
+        if (!time) {
+            showToast('Please select a time', 'error');
             return;
         }
 
+        // Build schedule data
+        const scheduleData = {
+            url,
+            time,
+            enabled,
+            groupId,
+            mode
+        };
+
+        if (mode === 'specific-dates') {
+            const selectedDates = flatpickrInstance.selectedDates;
+            if (selectedDates.length === 0) {
+                showToast('Please select at least one date', 'error');
+                return;
+            }
+
+            scheduleData.specificDates = selectedDates.map(date => {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            });
+
+        } else if (mode === 'days-of-week') {
+            const selectedDays = Array.from(document.querySelectorAll('input[name="dow"]:checked'))
+                .map(cb => parseInt(cb.value));
+
+            if (selectedDays.length === 0) {
+                showToast('Please select at least one day', 'error');
+                return;
+            }
+
+            scheduleData.daysOfWeek = selectedDays;
+        }
+
+        // Save schedule
         if (editingScheduleId) {
             // Update existing
             await updateSchedule(editingScheduleId, scheduleData);
@@ -246,8 +654,7 @@ async function handleSaveSchedule(e) {
         }
 
         closeModal();
-        await loadSchedules();
-        await updateStats();
+        // Note: loadSchedules() will be called automatically by storage.onChanged listener
 
     } catch (error) {
         console.error('Error saving schedule:', error);
@@ -308,14 +715,15 @@ async function confirmDeleteAll() {
 
 // Export schedules
 function exportSchedules() {
-    if (allSchedules.length === 0) {
-        showToast('No schedules to export', 'error');
+    if (allSchedules.length === 0 && allGroups.length === 0) {
+        showToast('No schedules or groups to export', 'error');
         return;
     }
 
     const data = {
-        version: '1.0',
+        version: '1.1',
         exportDate: new Date().toISOString(),
+        groups: allGroups,
         schedules: allSchedules
     };
 
@@ -323,11 +731,11 @@ function exportSchedules() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `initpage-schedules-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `autotab-schedules-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
 
-    showToast('Schedules exported successfully', 'success');
+    showToast('Schedules and groups exported successfully', 'success');
 }
 
 // Import schedules
@@ -345,22 +753,62 @@ async function importSchedules(e) {
             throw new Error('Invalid file format');
         }
 
-        // Validate and add schedules
-        let imported = 0;
+        // Import groups first (if available)
+        const groupIdMapping = {}; // Map old IDs to new IDs
+        let importedGroups = 0;
+
+        if (data.groups && Array.isArray(data.groups)) {
+            for (const group of data.groups) {
+                if (group.name && group.color) {
+                    // Check if group with same name already exists
+                    const existingGroup = allGroups.find(g => g.name === group.name);
+
+                    if (existingGroup) {
+                        // Reuse existing group
+                        groupIdMapping[group.id] = existingGroup.id;
+                    } else {
+                        // Create new group
+                        const newGroup = await addGroup({
+                            name: group.name,
+                            color: group.color
+                        });
+                        groupIdMapping[group.id] = newGroup.id;
+                        importedGroups++;
+                    }
+                }
+            }
+        }
+
+        // Reload groups after import
+        await loadGroups();
+
+        // Validate and add schedules with updated groupId references
+        let importedSchedules = 0;
         for (const schedule of data.schedules) {
             if (schedule.url && schedule.dayOfWeek !== undefined && schedule.time && schedule.type) {
+                // Update groupId reference to new ID
+                let newGroupId = null;
+                if (schedule.groupId && groupIdMapping[schedule.groupId]) {
+                    newGroupId = groupIdMapping[schedule.groupId];
+                }
+
                 await addSchedule({
                     url: schedule.url,
                     dayOfWeek: schedule.dayOfWeek,
                     time: schedule.time,
                     type: schedule.type,
-                    enabled: schedule.enabled !== undefined ? schedule.enabled : true
+                    enabled: schedule.enabled !== undefined ? schedule.enabled : true,
+                    groupId: newGroupId
                 });
-                imported++;
+                importedSchedules++;
             }
         }
 
-        showToast(`Imported ${imported} schedule(s)`, 'success');
+        const message = importedGroups > 0
+            ? `Imported ${importedSchedules} schedule(s) and ${importedGroups} group(s)`
+            : `Imported ${importedSchedules} schedule(s)`;
+
+        showToast(message, 'success');
         await loadSchedules();
         await updateStats();
 
@@ -403,7 +851,9 @@ async function updateStats() {
         activeSchedules.textContent = schedules.filter(s => s.enabled).length;
 
         const info = await getStorageInfo();
-        storageUsed.textContent = `${info.percentUsed.toFixed(1)}%`;
+        const usedKB = (info.bytesInUse / 1024).toFixed(1);
+        const totalKB = (chrome.storage.sync.QUOTA_BYTES / 1024).toFixed(0);
+        storageUsed.textContent = `${usedKB}/${totalKB} KB`;
     } catch (error) {
         console.error('Error updating stats:', error);
     }

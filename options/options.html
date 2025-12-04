@@ -3,15 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>InitPage - Manage Schedules</title>
+    <title>Auto Tab - Manage Schedules</title>
     <link rel="stylesheet" href="options.css">
+    <link rel="stylesheet" href="../lib/flatpickr/flatpickr.min.css">
 </head>
 <body>
     <div class="container">
         <!-- Header -->
         <header class="header">
             <div class="header-content">
-                <h1>InitPage Settings</h1>
+                <h1>Auto Tab Settings</h1>
                 <p class="subtitle">Manage your scheduled URLs</p>
             </div>
             <div class="header-actions">
@@ -30,8 +31,8 @@
                 <span class="stat-value" id="activeSchedules">0</span>
             </div>
             <div class="stat">
-                <span class="stat-label">Storage Used</span>
-                <span class="stat-value" id="storageUsed">0%</span>
+                <span class="stat-label">Storage</span>
+                <span class="stat-value" id="storageUsed" style="font-size: 20px;">0/100 KB</span>
             </div>
         </div>
 
@@ -65,7 +66,7 @@
             <div id="schedulesContainer" class="schedules-table">
                 <div class="empty-state">
                     <p>No schedules yet</p>
-                    <button class="btn-primary" onclick="document.getElementById('addNewBtn').click()">Add Your First Schedule</button>
+                    <button class="btn-primary" id="emptyAddBtn">Add Your First Schedule</button>
                 </div>
             </div>
         </div>
@@ -98,40 +99,53 @@
                     <input type="text" id="modalUrl" placeholder="https://example.com" required>
                 </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="modalDay">Day of Week *</label>
-                        <select id="modalDay" required>
-                            <option value="0">Sunday</option>
-                            <option value="1">Monday</option>
-                            <option value="2">Tuesday</option>
-                            <option value="3">Wednesday</option>
-                            <option value="4">Thursday</option>
-                            <option value="5">Friday</option>
-                            <option value="6">Saturday</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="modalTime">Time *</label>
-                        <input type="time" id="modalTime" required>
-                    </div>
-                </div>
-
+                <!-- Mode Selector -->
                 <div class="form-group">
                     <label class="radio-group-label">Schedule Type *</label>
-                    <div class="radio-group">
-                        <label class="radio-label">
-                            <input type="radio" name="scheduleType" value="recurring" checked>
-                            <span>Recurring (every week)</span>
+                    <div class="schedule-mode-selector">
+                        <label class="mode-radio">
+                            <input type="radio" name="scheduleMode" value="specific-dates" checked>
+                            <span>📅 Specific Dates</span>
                         </label>
-                        <label class="radio-label">
-                            <input type="radio" name="scheduleType" value="one-time">
-                            <span>One-time only</span>
+                        <label class="mode-radio">
+                            <input type="radio" name="scheduleMode" value="days-of-week">
+                            <span>🔄 Days of Week</span>
                         </label>
                     </div>
                 </div>
 
+                <!-- Specific Dates Mode -->
+                <div id="specificDatesMode" class="mode-section">
+                    <div class="form-group">
+                        <label for="calendarPicker">Select Dates *</label>
+                        <input type="text" id="calendarPicker" placeholder="Click to select dates" readonly>
+                        <small class="form-hint">Select one or more dates from the calendar</small>
+                    </div>
+                </div>
+
+                <!-- Days of Week Mode -->
+                <div id="daysOfWeekMode" class="mode-section" style="display:none;">
+                    <div class="form-group">
+                        <label>Select Days *</label>
+                        <div class="days-checkboxes">
+                            <label title="Sunday"><input type="checkbox" name="dow" value="0"><span>Sun</span></label>
+                            <label title="Monday"><input type="checkbox" name="dow" value="1"><span>Mon</span></label>
+                            <label title="Tuesday"><input type="checkbox" name="dow" value="2"><span>Tue</span></label>
+                            <label title="Wednesday"><input type="checkbox" name="dow" value="3"><span>Wed</span></label>
+                            <label title="Thursday"><input type="checkbox" name="dow" value="4"><span>Thu</span></label>
+                            <label title="Friday"><input type="checkbox" name="dow" value="5"><span>Fri</span></label>
+                            <label title="Saturday"><input type="checkbox" name="dow" value="6"><span>Sat</span></label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Time -->
+                <div class="form-group">
+                    <label for="modalTime">Time *</label>
+                    <input type="time" id="modalTime" required>
+                </div>
+
+                <!-- Tab Group & Enabled -->
                 <div class="form-group">
                     <label for="modalGroup">Tab Group</label>
                     <select id="modalGroup">
@@ -195,6 +209,7 @@
     <!-- Toast notification -->
     <div id="toast" class="toast"></div>
 
+    <script src="../lib/flatpickr/flatpickr.min.js"></script>
     <script type="module" src="options.js"></script>
 </body>
 </html>

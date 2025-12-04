@@ -277,7 +277,7 @@ body {
 /* Schedule Row */
 .schedule-row {
     display: grid;
-    grid-template-columns: 50px 1fr 120px 100px 120px 100px;
+    grid-template-columns: 50px 1fr 120px 100px 150px 120px 100px;
     align-items: center;
     padding: 16px;
     border-bottom: 1px solid #e8eaed;
@@ -322,6 +322,13 @@ body {
     font-size: 13px;
     font-weight: 500;
     color: #202124;
+}
+
+.schedule-group {
+    font-size: 13px;
+    color: #5f6368;
+    display: flex;
+    align-items: center;
 }
 
 .schedule-type {
@@ -578,6 +585,95 @@ body {
     cursor: pointer;
 }
 
+/* Schedule Mode Tabs */
+.schedule-mode-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.mode-tab {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 16px;
+    border: 2px solid #dadce0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+}
+
+.mode-tab input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+}
+
+.mode-tab span {
+    font-size: 13px;
+    font-weight: 500;
+    color: #5f6368;
+}
+
+.mode-tab:hover {
+    border-color: #4285f4;
+    background: #f8f9fa;
+}
+
+.mode-tab input[type="radio"]:checked + span {
+    color: #4285f4;
+}
+
+.mode-tab:has(input[type="radio"]:checked) {
+    border-color: #4285f4;
+    background: #e8f0fe;
+}
+
+/* Mode Fields Containers */
+.mode-fields {
+    margin-top: 16px;
+}
+
+/* Days Selector */
+.days-selector {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.day-checkbox {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 8px 4px;
+    border: 1px solid #dadce0;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.day-checkbox input[type="checkbox"] {
+    margin: 0 0 4px 0;
+    cursor: pointer;
+}
+
+.day-checkbox:hover {
+    background: #f8f9fa;
+    border-color: #4285f4;
+}
+
+.day-checkbox:has(input[type="checkbox"]:checked) {
+    background: #e8f0fe;
+    border-color: #4285f4;
+    color: #4285f4;
+    font-weight: 500;
+}
+
 .checkbox-label {
     display: flex;
     align-items: center;
@@ -630,6 +726,158 @@ body {
 
 .toast.error {
     background: #d93025;
+}
+
+/* Mode Selector */
+.radio-group-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #202124;
+}
+
+.schedule-mode-selector {
+    display: flex;
+    gap: 12px;
+}
+
+.mode-radio {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    border: 2px solid #dadce0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: #fff;
+}
+
+.mode-radio:hover {
+    border-color: #bdc1c6;
+    background: #f8f9fa;
+}
+
+.mode-radio input[type="radio"] {
+    margin-right: 8px;
+    cursor: pointer;
+}
+
+.mode-radio:has(input:checked) {
+    border-color: #4285f4;
+    background: #e8f0fe;
+}
+
+.mode-radio span {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* Mode Sections */
+.mode-section {
+    margin-top: 4px;
+}
+
+.form-hint {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    color: #5f6368;
+}
+
+/* Days Checkboxes */
+.days-checkboxes {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+}
+
+.days-checkboxes label {
+    padding: 10px 6px;
+    border: 2px solid #dadce0;
+    border-radius: 6px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: #fff;
+    user-select: none;
+}
+
+.days-checkboxes label:hover {
+    border-color: #bdc1c6;
+    background: #f8f9fa;
+}
+
+.days-checkboxes label:has(input:checked) {
+    background: #e8f0fe;
+    border-color: #4285f4;
+    font-weight: 500;
+}
+
+.days-checkboxes input[type="checkbox"] {
+    display: none;
+}
+
+.days-checkboxes span {
+    font-size: 13px;
+}
+
+/* Flatpickr Calendar Customization */
+#calendarPicker {
+    cursor: pointer;
+    background: white;
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #dadce0;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: border-color 0.2s;
+}
+
+#calendarPicker:hover {
+    border-color: #bdc1c6;
+}
+
+#calendarPicker:focus {
+    outline: none;
+    border-color: #4285f4;
+    box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.1);
+}
+
+/* Flatpickr theme overrides to match our design */
+.flatpickr-calendar {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    border: 1px solid #dadce0;
+}
+
+.flatpickr-day.selected {
+    background: #4285f4;
+    border-color: #4285f4;
+}
+
+.flatpickr-day.selected:hover {
+    background: #1967d2;
+    border-color: #1967d2;
+}
+
+.flatpickr-day:hover {
+    background: #e8f0fe;
+    border-color: #e8f0fe;
+}
+
+.flatpickr-months .flatpickr-month {
+    background: #4285f4;
+    color: white;
+}
+
+.flatpickr-current-month .flatpickr-monthDropdown-months,
+.flatpickr-current-month input.cur-year {
+    font-weight: 500;
+}
+
+.flatpickr-weekdays {
+    background: #f8f9fa;
 }
 
 /* Scrollbar */

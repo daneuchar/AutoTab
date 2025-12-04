@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "InitPage - Scheduled URL Opener",
+  "name": "Auto Tab - Scheduled URL Opener",
   "version": "1.0.0",
-  "description": "Automatically open URLs at scheduled times based on day of week. Configure recurring or one-time schedules with a simple interface.",
+  "description": "Automatically open URLs at scheduled times based on day of week. Configure recurring or one-time schedules with organized tab groups.",
   "permissions": [
     "storage",
     "alarms",
