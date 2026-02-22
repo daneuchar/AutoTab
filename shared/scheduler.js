@@ -197,9 +197,7 @@ export function getRelativeTimeString(date) {
   }
 
   if (days < 7) {
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    const timeStr = formatTime12Hour(`${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`);
-    return `${dayNames[date.getDay()]} at ${timeStr}`;
+    return `In ${days} days`;
   }
 
   return `In ${days} days`;

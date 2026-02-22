@@ -309,6 +309,10 @@ function createScheduleItem(schedule) {
         }
     }
 
+    const nextRow = schedule.mode !== 'specific-dates'
+        ? `<div class="schedule-detail"><span>⏰</span><span>${nextTime}</span></div>`
+        : '';
+
     item.innerHTML = `
         <div class="schedule-header">
             <div class="schedule-url">${truncateURL(schedule.url)}</div>
@@ -326,10 +330,7 @@ function createScheduleItem(schedule) {
                 <span class="badge ${typeClass}">${typeText}</span>
             </div>
             ${groupBadge}
-            <div class="schedule-detail">
-                <span>⏰</span>
-                <span>${nextTime}</span>
-            </div>
+            ${nextRow}
         </div>
     `;
 
