@@ -255,11 +255,10 @@ input[type="text"]::placeholder {
     margin-top: 20px;
     padding-top: 12px;
     border-top: 1px solid #e8eaed;
-    text-align: center;
     display: flex;
-    flex-direction: column;
+    flex-direction: row-reverse;
     align-items: center;
-    gap: 8px;
+    justify-content: space-between;
 }
 
 .btn-kofi {
