@@ -933,3 +933,20 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background: #bdc1c6;
 }
+
+/* Page Footer */
+.page-footer {
+    text-align: center;
+    padding: 16px;
+    color: #9aa0a6;
+    font-size: 13px;
+}
+
+.page-footer a {
+    color: #1967d2;
+    text-decoration: none;
+}
+
+.page-footer a:hover {
+    text-decoration: underline;
+}
