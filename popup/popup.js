@@ -324,9 +324,7 @@ function createScheduleItem(schedule) {
                 <span>📅</span>
                 <span class="schedule-time">${dayInfo} at ${timeStr}</span>
             </div>
-            <div class="schedule-detail">
-                <span class="badge ${typeClass}">${typeText}</span>
-            </div>
+            ${typeText !== '' && schedule.mode !== 'specific-dates' ? `<div class="schedule-detail"><span class="badge ${typeClass}">${typeText}</span></div>` : ''}
             ${groupBadge}
             ${nextRow}
         </div>
