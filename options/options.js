@@ -191,7 +191,7 @@ async function createGroupCard(group) {
     card.innerHTML = `
         <div class="group-card-header">
             <div class="group-color-badge" style="background: ${colorHex}"></div>
-            <div class="group-name">${group.name}</div>
+            <div class="group-name">${escapeHtml(group.name)}</div>
         </div>
         <div class="group-schedule-count">${count} schedule${count !== 1 ? 's' : ''}</div>
         <div class="group-actions">
@@ -344,7 +344,10 @@ function populateGroupDropdowns() {
 
     allGroups.forEach(group => {
         const colorHex = getGroupColorHex(group.color);
-        options.push(`<option value="${group.id}">${group.name}</option>`);
+        const opt = document.createElement('option');
+        opt.value = group.id;
+        opt.textContent = group.name;
+        options.push(opt.outerHTML);
     });
 
     modalGroup.innerHTML = options.join('');
@@ -802,11 +805,11 @@ async function importSchedules(e) {
             const isNewDaysOfWeek = schedule.url && schedule.time && schedule.mode === 'days-of-week' && Array.isArray(schedule.daysOfWeek) && schedule.daysOfWeek.length > 0;
             const isLegacy = schedule.url && schedule.time && schedule.dayOfWeek !== undefined && schedule.type;
 
-            if (isNewSpecificDates || isNewDaysOfWeek || isLegacy) {
+            if ((isNewSpecificDates || isNewDaysOfWeek || isLegacy) && isValidURL(formatURL(schedule.url))) {
                 const newGroupId = (schedule.groupId && groupIdMapping[schedule.groupId]) ? groupIdMapping[schedule.groupId] : null;
 
                 await addSchedule({
-                    url: schedule.url,
+                    url: formatURL(schedule.url),
                     time: schedule.time,
                     enabled: schedule.enabled !== undefined ? schedule.enabled : true,
                     groupId: newGroupId,

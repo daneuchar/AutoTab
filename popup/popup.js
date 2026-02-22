@@ -309,7 +309,7 @@ function createScheduleItem(schedule) {
             groupBadge = `
                 <div class="schedule-detail">
                     <span class="group-color-badge" style="background: ${colorHex}; width: 12px; height: 12px; display: inline-block; border-radius: 50%; margin-right: 4px;"></span>
-                    <span>${group.name}</span>
+                    <span>${escapeHtml(group.name)}</span>
                 </div>
             `;
         }

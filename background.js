@@ -445,6 +445,8 @@ function showNotification(schedules) {
 
 // Listen for manual trigger from popup/options (for testing)
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (sender.id !== chrome.runtime.id) return;
+
   if (message.action === 'triggerScheduleCheck') {
     checkAndTriggerSchedules().then(() => {
       sendResponse({ success: true });
