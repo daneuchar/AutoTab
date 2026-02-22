@@ -1,8 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "Auto Tab - Scheduled URL Opener",
-  "version": "1.0.0",
-  "description": "Automatically open URLs at scheduled times based on day of week. Configure recurring or one-time schedules with organized tab groups.",
+  "name": "AutoTab - Scheduled URL Opener",
+  "version": "2.0.0",
+  "description": "Schedule websites to open automatically. Multi-date calendar, tab groups, and notifications for daily routines and recurring tasks.",
+  "author": "Daniel Euchar",
+  "homepage_url": "https://github.com/daneuchar/AutoTab",
   "permissions": [
     "storage",
     "alarms",
@@ -17,6 +19,7 @@
     "default_popup": "popup/popup.html",
     "default_icon": {
       "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     }
@@ -24,6 +27,7 @@
   "options_page": "options/options.html",
   "icons": {
     "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   },

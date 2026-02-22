@@ -32,3 +32,10 @@ yarn.lock
 # Generated icons (optional - users can generate their own)
 icons/*.png
 !icons/icon*.png
+
+# Publishing / store submission files
+CHROME_STORE_PUBLISHING_GUIDE.md
+POLICY_COMPLIANCE_REPORT.md
+PRODUCT_HUNT_QUICK_START.md
+PRODUCT_HUNT_SCRIPT.md
+create-store-package.sh
