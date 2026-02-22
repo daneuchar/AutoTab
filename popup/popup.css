@@ -256,6 +256,26 @@ input[type="text"]::placeholder {
     padding-top: 12px;
     border-top: 1px solid #e8eaed;
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-kofi {
+    display: inline-block;
+    background: #29ABE0;
+    color: white;
+    text-decoration: none;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 500;
+    transition: background 0.2s;
+}
+
+.btn-kofi:hover {
+    background: #1a8abf;
 }
 
 /* Toast notification */

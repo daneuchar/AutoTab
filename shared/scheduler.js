@@ -45,44 +45,61 @@ export function shouldTriggerSchedule(schedule, currentDate = new Date()) {
 // Get the next occurrence of a schedule
 export function getNextOccurrence(schedule) {
   const now = new Date();
-  const currentDay = now.getDay();
-  const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-  // Parse schedule time
   const [scheduleHours, scheduleMinutes] = schedule.time.split(':').map(Number);
 
-  // Calculate days until next occurrence
-  let daysUntil = schedule.dayOfWeek - currentDay;
+  // Specific dates mode: find the next upcoming date from the list
+  if (schedule.mode === 'specific-dates' && schedule.specificDates) {
+    const sorted = [...schedule.specificDates].sort();
+    for (const dateStr of sorted) {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const candidate = new Date(y, m - 1, d, scheduleHours, scheduleMinutes, 0, 0);
+      if (candidate > now) return candidate;
+    }
+    return null;
+  }
 
-  // If schedule is for today
-  if (daysUntil === 0) {
-    // Check if time has already passed
-    if (currentTime >= schedule.time) {
-      // For one-time, if already triggered or time passed, no next occurrence
+  // Days-of-week mode: find the nearest upcoming day from the array
+  if (schedule.mode === 'days-of-week' && schedule.daysOfWeek) {
+    const currentDay = now.getDay();
+    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    let minDaysUntil = Infinity;
+
+    for (const day of schedule.daysOfWeek) {
+      let daysUntil = day - currentDay;
+      if (daysUntil === 0 && currentTime >= schedule.time) daysUntil = 7;
+      if (daysUntil < 0) daysUntil += 7;
+      if (daysUntil < minDaysUntil) minDaysUntil = daysUntil;
+    }
+
+    if (minDaysUntil === Infinity) return null;
+    const nextDate = new Date(now);
+    nextDate.setDate(now.getDate() + minDaysUntil);
+    nextDate.setHours(scheduleHours, scheduleMinutes, 0, 0);
+    return nextDate;
+  }
+
+  // Legacy fallback: old single dayOfWeek format
+  if (schedule.dayOfWeek !== undefined) {
+    const currentDay = now.getDay();
+    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+    let daysUntil = schedule.dayOfWeek - currentDay;
+
+    if (daysUntil === 0 && currentTime >= schedule.time) {
       if (schedule.type === SCHEDULE_TYPES.ONE_TIME) {
-        if (schedule.lastTriggered) {
-          return null;
-        }
-        // If time passed today and not triggered yet, still schedule for today
-        // (might be in the future if we haven't reached it yet)
+        if (schedule.lastTriggered) return null;
       } else {
-        // For recurring, schedule for next week
         daysUntil = 7;
       }
     }
+    if (daysUntil < 0) daysUntil += 7;
+
+    const nextDate = new Date(now);
+    nextDate.setDate(now.getDate() + daysUntil);
+    nextDate.setHours(scheduleHours, scheduleMinutes, 0, 0);
+    return nextDate;
   }
 
-  // If day is in the past this week, schedule for next week
-  if (daysUntil < 0) {
-    daysUntil += 7;
-  }
-
-  // Create the next occurrence date
-  const nextDate = new Date(now);
-  nextDate.setDate(now.getDate() + daysUntil);
-  nextDate.setHours(scheduleHours, scheduleMinutes, 0, 0);
-
-  return nextDate;
+  return null;
 }
 
 // Get upcoming schedules sorted by next occurrence

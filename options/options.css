@@ -376,6 +376,42 @@ body {
     color: #d93025;
 }
 
+/* Support Section */
+.support-section {
+    background: white;
+    padding: 20px 24px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.support-section p {
+    color: #5f6368;
+    font-size: 14px;
+    margin: 0;
+}
+
+.btn-kofi {
+    display: inline-block;
+    background: #29ABE0;
+    color: white;
+    text-decoration: none;
+    padding: 8px 18px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: background 0.2s;
+}
+
+.btn-kofi:hover {
+    background: #1a8abf;
+}
+
 /* Settings Section */
 .settings-section {
     background: white;
