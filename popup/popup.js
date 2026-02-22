@@ -1,4 +1,10 @@
 // Popup logic for Auto Tab extension
+
+function escapeHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+}
 import { DAYS_OF_WEEK, SCHEDULE_TYPES } from '../shared/constants.js';
 import { getSchedules, addSchedule, toggleSchedule, getGroups, addGroup } from '../shared/storage.js';
 import { getUpcomingSchedules, isValidURL, formatURL, findDuplicateSchedule, getRelativeTimeString, formatTime12Hour } from '../shared/scheduler.js';
@@ -313,7 +319,7 @@ function createScheduleItem(schedule) {
 
     item.innerHTML = `
         <div class="schedule-header">
-            <div class="schedule-url">${truncateURL(schedule.url)}</div>
+            <div class="schedule-url">${escapeHtml(truncateURL(schedule.url))}</div>
             <div class="schedule-toggle">
                 <input type="checkbox" id="toggle-${schedule.id}" ${schedule.enabled ? 'checked' : ''}>
                 <label for="toggle-${schedule.id}" class="schedule-toggle-label">On</label>

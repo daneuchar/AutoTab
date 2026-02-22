@@ -1,4 +1,10 @@
 // Options page logic for Auto Tab extension
+
+function escapeHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+}
 import { DAYS_OF_WEEK, SCHEDULE_TYPES, SCHEDULE_MODES, TAB_GROUP_COLORS } from '../shared/constants.js';
 import { getSchedules, addSchedule, updateSchedule, deleteSchedule, deleteSchedules, toggleSchedule, getSettings, updateSettings, clearAllSchedules, getStorageInfo, getGroups, addGroup, updateGroup, deleteGroup, getSchedulesByGroupId } from '../shared/storage.js';
 import { isValidURL, formatURL, findDuplicateSchedule, formatTime12Hour } from '../shared/scheduler.js';
@@ -90,7 +96,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         inline: false,
         showMonths: 1,
         onChange: function(selectedDates, dateStr, instance) {
-            console.log('Selected dates:', selectedDates);
         }
     });
 
@@ -170,10 +175,8 @@ function renderGroups() {
         return;
     }
 
-    allGroups.forEach(async (group) => {
-        const card = await createGroupCard(group);
-        groupsContainer.appendChild(card);
-    });
+    const cards = await Promise.all(allGroups.map(group => createGroupCard(group)));
+    cards.forEach(card => groupsContainer.appendChild(card));
 }
 
 // Create group card element
@@ -450,7 +453,7 @@ function createScheduleRow(schedule) {
         const group = allGroups.find(g => g.id === schedule.groupId);
         if (group) {
             const colorHex = getGroupColorHex(group.color);
-            groupHtml = `<div class="schedule-group"><span class="group-color-badge" style="background: ${colorHex}; width: 12px; height: 12px; display: inline-block; border-radius: 50%; margin-right: 6px; vertical-align: middle;"></span>${group.name}</div>`;
+            groupHtml = `<div class="schedule-group"><span class="group-color-badge" style="background: ${colorHex}; width: 12px; height: 12px; display: inline-block; border-radius: 50%; margin-right: 6px; vertical-align: middle;"></span>${escapeHtml(group.name)}</div>`;
         }
     }
 
@@ -458,7 +461,7 @@ function createScheduleRow(schedule) {
         <div class="schedule-enabled">
             <input type="checkbox" ${schedule.enabled ? 'checked' : ''} data-id="${schedule.id}">
         </div>
-        <div class="schedule-url">${schedule.url}</div>
+        <div class="schedule-url">${escapeHtml(schedule.url)}</div>
         <div class="schedule-day">${dayInfo}</div>
         <div class="schedule-time">${timeStr}</div>
         ${groupHtml}
@@ -502,11 +505,14 @@ function handleSearch() {
     if (!query) {
         filteredSchedules = [...allSchedules];
     } else {
-        filteredSchedules = allSchedules.filter(schedule =>
-            schedule.url.toLowerCase().includes(query) ||
-            DAYS_OF_WEEK[schedule.dayOfWeek].toLowerCase().includes(query) ||
-            schedule.time.includes(query)
-        );
+        filteredSchedules = allSchedules.filter(schedule => {
+            const dayStr = schedule.dayOfWeek !== undefined
+                ? DAYS_OF_WEEK[schedule.dayOfWeek].toLowerCase()
+                : (schedule.daysOfWeek || []).map(d => DAYS_OF_WEEK[d].toLowerCase()).join(' ');
+            return schedule.url.toLowerCase().includes(query) ||
+                dayStr.includes(query) ||
+                schedule.time.includes(query);
+        });
     }
 
     renderSchedules();
@@ -785,20 +791,21 @@ async function importSchedules(e) {
         // Validate and add schedules with updated groupId references
         let importedSchedules = 0;
         for (const schedule of data.schedules) {
-            if (schedule.url && schedule.dayOfWeek !== undefined && schedule.time && schedule.type) {
-                // Update groupId reference to new ID
-                let newGroupId = null;
-                if (schedule.groupId && groupIdMapping[schedule.groupId]) {
-                    newGroupId = groupIdMapping[schedule.groupId];
-                }
+            const isNewSpecificDates = schedule.url && schedule.time && schedule.mode === 'specific-dates' && Array.isArray(schedule.specificDates) && schedule.specificDates.length > 0;
+            const isNewDaysOfWeek = schedule.url && schedule.time && schedule.mode === 'days-of-week' && Array.isArray(schedule.daysOfWeek) && schedule.daysOfWeek.length > 0;
+            const isLegacy = schedule.url && schedule.time && schedule.dayOfWeek !== undefined && schedule.type;
+
+            if (isNewSpecificDates || isNewDaysOfWeek || isLegacy) {
+                const newGroupId = (schedule.groupId && groupIdMapping[schedule.groupId]) ? groupIdMapping[schedule.groupId] : null;
 
                 await addSchedule({
                     url: schedule.url,
-                    dayOfWeek: schedule.dayOfWeek,
                     time: schedule.time,
-                    type: schedule.type,
                     enabled: schedule.enabled !== undefined ? schedule.enabled : true,
-                    groupId: newGroupId
+                    groupId: newGroupId,
+                    ...(isNewSpecificDates && { mode: 'specific-dates', specificDates: schedule.specificDates }),
+                    ...(isNewDaysOfWeek && { mode: 'days-of-week', daysOfWeek: schedule.daysOfWeek }),
+                    ...(isLegacy && { dayOfWeek: schedule.dayOfWeek, type: schedule.type })
                 });
                 importedSchedules++;
             }

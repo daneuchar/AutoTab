@@ -179,6 +179,9 @@ function shouldTriggerSchedule(schedule, currentDate = new Date()) {
         }
       }
     }
+  } else {
+    // Unknown/corrupt format — do not trigger
+    return false;
   }
 
   return true;
@@ -298,13 +301,17 @@ async function openScheduledTabs(schedules) {
   console.log(`Opening ${schedules.length} scheduled URL(s)`);
 
   try {
-    // Get current window
-    const currentWindow = await chrome.windows.getCurrent();
+    // Get last focused window (safe in service worker — getCurrent() can fail)
+    let windowId = null;
+    try {
+      const win = await chrome.windows.getLastFocused({ populate: false });
+      if (win) windowId = win.id;
+    } catch (e) { /* no window available, open tabs without windowId */ }
 
     // Get all existing tab groups in current window
-    const existingGroups = await chrome.tabGroups.query({
-      windowId: currentWindow.id
-    });
+    const existingGroups = windowId
+      ? await chrome.tabGroups.query({ windowId })
+      : [];
 
     // Organize schedules by groupId
     const schedulesByGroup = {};
@@ -343,7 +350,7 @@ async function openScheduledTabs(schedules) {
             const tab = await chrome.tabs.create({
               url: schedule.url,
               active: isFirstTab,
-              windowId: currentWindow.id
+              ...(windowId ? { windowId } : {})
             });
             tabIds.push(tab.id);
             console.log(`Opened tab: ${schedule.url}`);
@@ -396,7 +403,7 @@ async function openScheduledTabs(schedules) {
         await chrome.tabs.create({
           url: schedule.url,
           active: isFirstTab,
-          windowId: currentWindow.id
+          ...(windowId ? { windowId } : {})
         });
         console.log(`Opened ungrouped tab: ${schedule.url}`);
         isFirstTab = false;
@@ -432,7 +439,7 @@ function showNotification(schedules) {
     message = `Opened ${schedules.length} scheduled URLs`;
   }
 
-  chrome.notifications.create({
+  chrome.notifications.create('autotab-trigger', {
     type: 'basic',
     iconUrl: chrome.runtime.getURL('icons/icon48.png'),
     title: title,

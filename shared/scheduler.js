@@ -53,7 +53,7 @@ export function getNextOccurrence(schedule) {
     for (const dateStr of sorted) {
       const [y, m, d] = dateStr.split('-').map(Number);
       const candidate = new Date(y, m - 1, d, scheduleHours, scheduleMinutes, 0, 0);
-      if (candidate > now) return candidate;
+      if (candidate >= now) return candidate;
     }
     return null;
   }
@@ -194,10 +194,6 @@ export function getRelativeTimeString(date) {
   if (days === 1) {
     const timeStr = formatTime12Hour(`${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`);
     return `Tomorrow at ${timeStr}`;
-  }
-
-  if (days < 7) {
-    return `In ${days} days`;
   }
 
   return `In ${days} days`;
