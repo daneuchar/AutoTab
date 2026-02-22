@@ -175,10 +175,8 @@ async function renderGroups() {
         return;
     }
 
-    for (const group of allGroups) {
-        const card = await createGroupCard(group);
-        groupsContainer.appendChild(card);
-    }
+    const cards = await Promise.all(allGroups.map(group => createGroupCard(group)));
+    cards.forEach(card => groupsContainer.appendChild(card));
 }
 
 // Create group card element
