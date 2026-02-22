@@ -1,14 +1,14 @@
 // Options page logic for Auto Tab extension
+import { DAYS_OF_WEEK, SCHEDULE_TYPES } from '../shared/constants.js';
+import { getSchedules, addSchedule, updateSchedule, deleteSchedule, deleteSchedules, toggleSchedule, getSettings, updateSettings, clearAllSchedules, getStorageInfo, getGroups, addGroup, updateGroup, deleteGroup, getSchedulesByGroupId } from '../shared/storage.js';
+import { isValidURL, formatURL, findDuplicateSchedule, formatTime12Hour } from '../shared/scheduler.js';
+import { getGroupColorHex, isGroupInUse } from '../shared/groups.js';
 
 function escapeHtml(str) {
     const d = document.createElement('div');
     d.textContent = str;
     return d.innerHTML;
 }
-import { DAYS_OF_WEEK, SCHEDULE_TYPES } from '../shared/constants.js';
-import { getSchedules, addSchedule, updateSchedule, deleteSchedule, deleteSchedules, toggleSchedule, getSettings, updateSettings, clearAllSchedules, getStorageInfo, getGroups, addGroup, updateGroup, deleteGroup, getSchedulesByGroupId } from '../shared/storage.js';
-import { isValidURL, formatURL, findDuplicateSchedule, formatTime12Hour } from '../shared/scheduler.js';
-import { getGroupColorHex, isGroupInUse } from '../shared/groups.js';
 
 // DOM elements
 let schedulesContainer, searchInput;

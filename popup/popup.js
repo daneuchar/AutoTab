@@ -1,14 +1,14 @@
 // Popup logic for Auto Tab extension
+import { DAYS_OF_WEEK } from '../shared/constants.js';
+import { getSchedules, addSchedule, toggleSchedule, getGroups, addGroup } from '../shared/storage.js';
+import { getUpcomingSchedules, isValidURL, formatURL, findDuplicateSchedule, getRelativeTimeString, formatTime12Hour } from '../shared/scheduler.js';
+import { getGroupColorHex } from '../shared/groups.js';
 
 function escapeHtml(str) {
     const d = document.createElement('div');
     d.textContent = str;
     return d.innerHTML;
 }
-import { DAYS_OF_WEEK } from '../shared/constants.js';
-import { getSchedules, addSchedule, toggleSchedule, getGroups, addGroup } from '../shared/storage.js';
-import { getUpcomingSchedules, isValidURL, formatURL, findDuplicateSchedule, getRelativeTimeString, formatTime12Hour } from '../shared/scheduler.js';
-import { getGroupColorHex } from '../shared/groups.js';
 
 // DOM elements
 let urlInput, timeInput, groupSelect, addScheduleForm;
