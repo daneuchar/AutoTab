@@ -406,11 +406,18 @@ function createScheduleRow(schedule) {
 
     if (schedule.mode === 'specific-dates' && schedule.specificDates) {
         // New format: multiple specific dates
-        const dates = schedule.specificDates.map(d => {
+        const sorted = [...schedule.specificDates].sort();
+        const byMonth = {};
+        sorted.forEach(d => {
             const date = new Date(d);
-            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        }).join(', ');
-        dayInfo = dates;
+            const month = date.toLocaleDateString('en-US', { month: 'short' });
+            const day = date.getDate();
+            if (!byMonth[month]) byMonth[month] = [];
+            byMonth[month].push(day);
+        });
+        dayInfo = Object.entries(byMonth)
+            .map(([month, days]) => `${month} ${days.join(', ')}`)
+            .join(' · ');
         typeClass = 'one-time';
         typeText = `${schedule.specificDates.length} Date${schedule.specificDates.length > 1 ? 's' : ''}`;
 
