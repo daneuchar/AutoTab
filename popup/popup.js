@@ -309,9 +309,7 @@ function createScheduleItem(schedule) {
         }
     }
 
-    const nextRow = schedule.mode !== 'specific-dates'
-        ? `<div class="schedule-detail"><span>⏰</span><span>${nextTime}</span></div>`
-        : '';
+    const nextRow = `<div class="schedule-detail"><span>⏰</span><span>${nextTime}</span></div>`;
 
     item.innerHTML = `
         <div class="schedule-header">
