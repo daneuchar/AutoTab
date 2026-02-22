@@ -1,5 +1,4 @@
 // Scheduling utilities and time calculations
-import { SCHEDULE_TYPES } from './constants.js';
 
 // Check if a schedule should trigger at the current time
 export function shouldTriggerSchedule(schedule, currentDate = new Date()) {

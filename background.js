@@ -16,11 +16,6 @@ const SCHEDULE_TYPES = {
   RECURRING: 'recurring',
   ONE_TIME: 'one-time'
 };
-const SCHEDULE_MODES = {
-  DAY_OF_WEEK: 'day-of-week',
-  SPECIFIC_DATE: 'specific-date',
-  DATE_RANGE: 'date-range'
-};
 
 // Storage functions
 async function getSchedules() {

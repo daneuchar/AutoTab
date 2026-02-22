@@ -5,7 +5,7 @@ function escapeHtml(str) {
     d.textContent = str;
     return d.innerHTML;
 }
-import { DAYS_OF_WEEK, SCHEDULE_TYPES, SCHEDULE_MODES, TAB_GROUP_COLORS } from '../shared/constants.js';
+import { DAYS_OF_WEEK, SCHEDULE_TYPES } from '../shared/constants.js';
 import { getSchedules, addSchedule, updateSchedule, deleteSchedule, deleteSchedules, toggleSchedule, getSettings, updateSettings, clearAllSchedules, getStorageInfo, getGroups, addGroup, updateGroup, deleteGroup, getSchedulesByGroupId } from '../shared/storage.js';
 import { isValidURL, formatURL, findDuplicateSchedule, formatTime12Hour } from '../shared/scheduler.js';
 import { getGroupColorHex, isGroupInUse } from '../shared/groups.js';
@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         minDate: "today",
         inline: false,
         showMonths: 1,
-        onChange: function(selectedDates, dateStr, instance) {
+        onChange: function() {
         }
     });
 

@@ -5,7 +5,7 @@ function escapeHtml(str) {
     d.textContent = str;
     return d.innerHTML;
 }
-import { DAYS_OF_WEEK, SCHEDULE_TYPES } from '../shared/constants.js';
+import { DAYS_OF_WEEK } from '../shared/constants.js';
 import { getSchedules, addSchedule, toggleSchedule, getGroups, addGroup } from '../shared/storage.js';
 import { getUpcomingSchedules, isValidURL, formatURL, findDuplicateSchedule, getRelativeTimeString, formatTime12Hour } from '../shared/scheduler.js';
 import { getGroupColorHex } from '../shared/groups.js';
