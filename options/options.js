@@ -163,7 +163,7 @@ async function loadGroups() {
 }
 
 // Render groups to the grid
-function renderGroups() {
+async function renderGroups() {
     groupsContainer.innerHTML = '';
 
     if (allGroups.length === 0) {
