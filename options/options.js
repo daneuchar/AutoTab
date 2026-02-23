@@ -468,23 +468,21 @@ function createScheduleRow(schedule) {
     }
 
     row.innerHTML = `
-        <div class="schedule-enabled">
-            <input type="checkbox" ${schedule.enabled ? 'checked' : ''} data-id="${schedule.id}">
-        </div>
         <div class="schedule-url">${escapeHtml(schedule.url)}</div>
         <div class="schedule-day">${dayInfo}</div>
         <div class="schedule-time">${timeStr}</div>
         ${groupHtml}
         <div class="schedule-type ${typeClass}">${typeText}</div>
         <div class="schedule-actions">
+            <button class="btn-icon pause ${schedule.enabled ? '' : 'paused'}" data-id="${schedule.id}" title="${schedule.enabled ? 'Pause schedule' : 'Resume schedule'}">${schedule.enabled ? '⏸' : '▶️'}</button>
             <button class="btn-icon edit" data-id="${schedule.id}" title="Edit">✏️</button>
             <button class="btn-icon delete" data-id="${schedule.id}" title="Delete">🗑️</button>
         </div>
     `;
 
     // Event listeners
-    const checkbox = row.querySelector('input[type="checkbox"]');
-    checkbox.addEventListener('change', () => handleToggle(schedule.id));
+    const pauseBtn = row.querySelector('.pause');
+    pauseBtn.addEventListener('click', () => handleToggle(schedule.id));
 
     const editBtn = row.querySelector('.edit');
     editBtn.addEventListener('click', () => openEditModal(schedule));
@@ -549,7 +547,7 @@ function openAddModal() {
     // Uncheck all day-of-week checkboxes
     document.querySelectorAll('input[name="dow"]').forEach(cb => cb.checked = false);
 
-    modalEnabled.checked = true;
+    modalEnabled.checked = false;
 
     scheduleModal.classList.add('show');
 }
@@ -560,7 +558,7 @@ function openEditModal(schedule) {
     modalTitle.textContent = 'Edit Schedule';
 
     modalUrl.value = schedule.url;
-    modalEnabled.checked = schedule.enabled;
+    modalEnabled.checked = !schedule.enabled;
     modalGroup.value = schedule.groupId || '';
     modalTime.value = schedule.time;
 
@@ -608,7 +606,7 @@ async function handleSaveSchedule(e) {
     try {
         const url = formatURL(modalUrl.value);
         const time = modalTime.value;
-        const enabled = modalEnabled.checked;
+        const enabled = !modalEnabled.checked;
         const groupId = modalGroup.value || null;
         const mode = document.querySelector('input[name="scheduleMode"]:checked').value;
 
