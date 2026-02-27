@@ -8,7 +8,7 @@
   "permissions": [
     "storage",
     "alarms",
-    "tabs",
+    "activeTab",
     "tabGroups",
     "notifications"
   ],
