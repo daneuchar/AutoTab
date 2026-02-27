@@ -62,6 +62,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Set default values
     setDefaultFormValues();
+    await populateCurrentTabUrl();
 
     // Load groups and populate dropdown
     await loadGroups();
@@ -132,6 +133,18 @@ function setDefaultFormValues() {
     const hours = String(futureTime.getHours()).padStart(2, '0');
     const minutes = String(futureTime.getMinutes()).padStart(2, '0');
     timeInput.value = `${hours}:${minutes}`;
+}
+
+async function populateCurrentTabUrl() {
+    try {
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tab?.url && (tab.url.startsWith('http://') || tab.url.startsWith('https://'))) {
+            urlInput.value = tab.url;
+        }
+    } catch (error) {
+        // Non-fatal — leave URL field empty
+        console.error('Could not get active tab URL:', error);
+    }
 }
 
 // Handle mode switching between specific dates and days of week
