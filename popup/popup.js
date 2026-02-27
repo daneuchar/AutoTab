@@ -138,8 +138,9 @@ function setDefaultFormValues() {
 async function populateCurrentTabUrl() {
     try {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (tab?.url && (tab.url.startsWith('http://') || tab.url.startsWith('https://'))) {
-            urlInput.value = tab.url;
+        const url = tab?.url ?? '';
+        if (url.startsWith('http://') || url.startsWith('https://')) {
+            urlInput.value = url;
         }
     } catch (error) {
         // Non-fatal — leave URL field empty
